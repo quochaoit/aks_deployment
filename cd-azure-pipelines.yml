@@ -12,11 +12,7 @@ variables:
   tag: 'latest'
 
 steps:
-# 1️⃣ Checkout code
-- task: Checkout@1
-  displayName: 'Checkout code'
-
-# 2️⃣ Connect to AKS
+# Connect to AKS
 - task: AzureCLI@2
   displayName: 'Connect to AKS'
   inputs:
@@ -27,7 +23,7 @@ steps:
       az aks get-credentials --resource-group $(aksResourceGroup) --name $(aksCluster) --overwrite-existing
       kubectl config current-context
 
-# 3️⃣ Deploy backend image to AKS
+# Deploy backend image to AKS
 - script: |
     echo "Using registry: $(containerRegistry)"
     echo "Namespace: $(namespace)"
@@ -41,7 +37,7 @@ steps:
     envsubst < k8s_deployment/backend.yaml | kubectl apply -f -
   displayName: 'Deploy to AKS'
 
-# 4️⃣ Verify deployment
+# Verify deployment
 - script: |
     kubectl get pods
     kubectl get svc
