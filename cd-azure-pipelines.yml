@@ -4,12 +4,11 @@ pool:
   vmImage: 'ubuntu-latest'
 
 variables:
-  azureSubscription: 'HaoACRConn'      # your Azure DevOps service connection
-  aksResourceGroup: 'devops-aks-rg'    # resource group of AKS
-  aksCluster: 'devops-aks'             # AKS cluster name
+  azureSubscription: 'HaoSubscriptionConn'      # your Azure DevOps service connection
+  aksResourceGroup: 'devop-aks'    # resource group of AKS
+  aksCluster: 'devop-aks'             # AKS cluster name
   namespace: 'dev'
   containerRegistry: 'devopacr.azurecr.io'
-  imageRepository: 'backend'
   tag: 'latest'
 
 steps:
@@ -29,22 +28,21 @@ steps:
       kubectl config current-context
 
 # 3️⃣ Deploy backend image to AKS
-- task: KubernetesManifest@1
-  displayName: 'Deploy backend to AKS'
-  inputs:
-    action: 'deploy'
-    connectionType: 'azureResourceManager'
-    azureSubscription: '$(azureSubscription)'
-    azureResourceGroup: '$(aksResourceGroup)'
-    kubernetesCluster: '$(aksCluster)'
-    namespace: '$(namespace)'
-    manifests: |
-      $(System.DefaultWorkingDirectory)/k8s/backend-deployment.yaml
-    containers: |
-      $(containerRegistry)/$(imageRepository):$(tag)
+- script: |
+    echo "Using registry: $(containerRegistry)"
+    echo "Namespace: $(namespace)"
+
+    # Create namespace if not exists
+    kubectl get namespace $(namespace) || kubectl create namespace $(namespace)
+    kubectl config set-context --current --namespace=$(namespace)
+
+    echo "Deploying backend..."
+    export REGISTRY=$(containerRegistry)
+    envsubst < k8s_deployment/backend.yaml | kubectl apply -f -
+  displayName: 'Deploy to AKS'
 
 # 4️⃣ Verify deployment
 - script: |
-    kubectl get pods -n $(namespace)
-    kubectl get svc -n $(namespace)
+    kubectl get pods
+    kubectl get svc
   displayName: 'Verify AKS deployment'

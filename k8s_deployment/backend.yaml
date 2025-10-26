@@ -27,7 +27,7 @@ spec:
     spec:
       containers:
         - name: backend
-          image: $(ACR_URL)/backend:latest
+          image: $(REGISTRY)/backend:latest
           imagePullPolicy: Always
           ports:
             - containerPort: 3000
