@@ -9,6 +9,7 @@ variables:
   aksCluster: 'devop-aks'             # AKS cluster name
   namespace: 'dev'
   containerRegistry: 'devopacr.azurecr.io'
+  deploymentContextPath: 'k8s_deployment'
   tag: 'latest'
 
 steps:
@@ -23,22 +24,98 @@ steps:
       az aks get-credentials --resource-group $(aksResourceGroup) --name $(aksCluster) --overwrite-existing
       kubectl config current-context
 
-# Deploy backend image to AKS
+# Create namespace if not exists
+- script: |
+    kubectl get namespace $(namespace) || kubectl create namespace $(namespace)
+    kubectl config set-context --current --namespace=$(namespace)
+  displayName: 'Create namespace if not exists'
+
+# Database
+- script: |
+    echo "Create storageclass, pvc and database"
+    kubectl apply -f $(deploymentContextPath)/mongodb.yaml
+  displayName: 'Create storageclass, pvc and database'
+
+- script: |
+    echo "verify storage class"
+    kubectl get sc
+
+    echo "verify pvc"
+    kubectl get pvc
+
+    echo "verify StatefulSet"
+    kubectl get sts
+
+    echo "verify database pods"
+    kubectl get pod
+
+    echo "verify database service"
+    kubectl get service
+
+    echo "verify configmap"
+    kubectl get configmap
+
+    echo "check configmap details"
+    kubectl describe configmap mongo-config
+
+    echo "verify secret"
+    kubectl get secret
+
+    echo "check secret details"
+    kubectl get secret mongo-secrets -o yaml
+
+  displayName: 'Verify storageclass, pvc and database'
+
+# Backend
 - script: |
     echo "Using registry: $(containerRegistry)"
     echo "Namespace: $(namespace)"
 
-    # Create namespace if not exists
-    kubectl get namespace $(namespace) || kubectl create namespace $(namespace)
-    kubectl config set-context --current --namespace=$(namespace)
-
     echo "Deploying backend..."
     export REGISTRY=$(containerRegistry)
-    envsubst < k8s_deployment/backend.yaml | kubectl apply -f -
-  displayName: 'Deploy to AKS'
+    envsubst < $(deploymentContextPath)/backend.yaml | kubectl apply -f -
+  displayName: 'Deploy backend image to AKS'
 
-# Verify deployment
 - script: |
+    echo "verify backend pods"
     kubectl get pods
+    
+    echo "verify backend service"
     kubectl get svc
-  displayName: 'Verify AKS deployment'
+  displayName: 'Verify backend deployment'
+
+# Frontend
+- script: |
+    echo "Using registry: $(containerRegistry)"
+    echo "Namespace: $(namespace)"
+
+    echo "Deploying frontend..."
+    export REGISTRY=$(containerRegistry)
+    envsubst < $(deploymentContextPath)/frontend.yaml | kubectl apply -f -
+  displayName: 'Deploy frontend image to AKS'
+
+- script: |
+    echo "verify frontend pods"
+    kubectl get pods
+    
+    echo "verify frontend service"
+    kubectl get svc
+  displayName: 'Verify frontend deployment'
+
+# Ingress
+- script: |
+    echo "install NGINX ingress controller"
+    kubectl apply -f https://raw.githubusercontent.com/kubernetes/ingress-nginx/controllerv1.7.1/deploy/static/provider/cloud/deploy.yaml
+  displayName: 'Application Ingress'
+
+- script: |
+    echo "verify ingress controller installation"
+    kubectl get pods --namespace=ingress-nginx | grep nginx
+    
+    echo "install application ingress"
+    kubectl apply -f $(deploymentContextPath)/ingress.yml
+
+    echo "verify application ingress"
+    kubectl get ingress -o wide
+
+  displayName: 'Verify ingress'
