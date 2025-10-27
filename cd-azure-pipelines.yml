@@ -37,31 +37,31 @@ steps:
   displayName: 'Create storageclass, pvc and database'
 
 - script: |
-    echo "\nverify storage class"
+    echo -e "\nverify storage class"
     kubectl get sc
 
-    echo "\nverify pvc"
+    echo -e "\nverify pvc"
     kubectl get pvc
 
-    echo "\nverify StatefulSet"
+    echo -e "\nverify StatefulSet"
     kubectl get sts
 
-    echo "\nverify database pods"
+    echo -e "\nverify database pods"
     kubectl get pod
 
-    echo "\nverify database service"
+    echo -e "\nverify database service"
     kubectl get service
 
-    echo "\nverify configmap"
+    echo -e "\nverify configmap"
     kubectl get configmap
 
-    echo "\ncheck configmap details"
+    echo -e "\ncheck configmap details"
     kubectl describe configmap mongo-config
 
-    echo "\nverify secret"
+    echo -e "\nverify secret"
     kubectl get secret
 
-    echo "\ncheck secret details"
+    echo -e "\ncheck secret details"
     kubectl get secret mongo-secrets -o yaml
 
   displayName: 'Verify storageclass, pvc and database'
@@ -71,7 +71,7 @@ steps:
     echo "Using registry: $(containerRegistry)"
     echo "Namespace: $(namespace)"
 
-    echo "\nDeploying backend..."
+    echo -e "\nDeploying backend..."
     export REGISTRY=$(containerRegistry)
     envsubst < $(deploymentContextPath)/backend.yaml | kubectl apply -f -
   displayName: 'Deploy backend image to AKS'
@@ -80,7 +80,7 @@ steps:
     echo "verify backend pods"
     kubectl get pods
     
-    echo "\nverify backend service"
+    echo -e "\nverify backend service"
     kubectl get svc
   displayName: 'Verify backend deployment'
 
@@ -89,7 +89,7 @@ steps:
     echo "Using registry: $(containerRegistry)"
     echo "Namespace: $(namespace)"
 
-    echo "\nDeploying frontend..."
+    echo -e "\nDeploying frontend..."
     export REGISTRY=$(containerRegistry)
     envsubst < $(deploymentContextPath)/frontend.yaml | kubectl apply -f -
   displayName: 'Deploy frontend image to AKS'
@@ -98,7 +98,7 @@ steps:
     echo "verify frontend pods"
     kubectl get pods
     
-    echo "\nverify frontend service"
+    echo -e "\nverify frontend service"
     kubectl get svc
   displayName: 'Verify frontend deployment'
 
@@ -112,10 +112,10 @@ steps:
     echo "verify ingress controller installation"
     kubectl get pods --namespace=ingress-nginx | grep nginx
     
-    echo "\ninstall application ingress"
+    echo -e "\ninstall application ingress"
     kubectl apply -f $(deploymentContextPath)/ingress.yml
 
-    echo "\nverify application ingress"
+    echo -e "\nverify application ingress"
     kubectl get ingress -o wide
 
   displayName: 'Verify ingress'
