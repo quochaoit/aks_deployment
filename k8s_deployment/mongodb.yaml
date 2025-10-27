@@ -2,12 +2,15 @@
 apiVersion: storage.k8s.io/v1
 kind: StorageClass
 metadata:
-  name: mongo-sc
-provisioner: kubernetes.io/aws-ebs
+  name: managed-premium-retain
+provisioner: disk.csi.azure.com
 parameters:
-  type: gp2
+  skuName: Standard_LRS
+reclaimPolicy: Retain
 volumeBindingMode: WaitForFirstConsumer
-
+allowVolumeExpansion: true
+ 
+ 
 ---
 apiVersion: v1
 kind: Service
@@ -60,7 +63,7 @@ spec:
         ports:
           - containerPort: 27017
         envFrom:
-         - configMapRef:             
+         - configMapRef:            
                name: mongo-config
          - secretRef:
              name: mongo-secrets
@@ -68,14 +71,11 @@ spec:
             - name: data-volume
               mountPath: /data/db
   volumeClaimTemplates:
-    - metadata:
-        name: data-volume
-      spec:
-        storageClassName: mongo-sc
-        accessModes:
-          - "ReadWriteOnce"
-        resources:
-          requests:
-            storage: "1Gi"
-
-
+  - metadata:
+      name: data-volume
+    spec:
+      accessModes: [ "ReadWriteOnce" ]
+      storageClassName: "managed-premium-retain"
+      resources:
+        requests:
+          storage: 1Gi
